@@ -44,7 +44,6 @@ public class Demo {
 
             // 打开串口
             SerialPort sport = portIdentifier.open("temperlature", 3000);
-            log.info("sport.getName() = {}", sport.getName());
 
 
             // 设置串口参数
@@ -81,14 +80,8 @@ public class Demo {
             CommPortIdentifier commPortIdentifier = (CommPortIdentifier) portIdentifiers.nextElement();
             String portTypeName = getPortTypeName(commPortIdentifier.getPortType());
             System.out.println(commPortIdentifier.getName() + "-" + portTypeName);
-
-
         }
 
-        HashSet<CommPortIdentifier> portSet = getAvailableSerialPorts();
-        for (CommPortIdentifier comm : portSet) {
-            System.out.println(comm.getName() + " - " + getPortTypeName(comm.getPortType()));
-        }
     }
 
     private static String getPortTypeName(int portType) {
@@ -169,18 +162,16 @@ public class Demo {
 
         private void readComm() {
             try(in) {
+                // 延迟一下等所有数据都输入进来
+                Thread.sleep(300);
                 byte[] readBuffer=new byte[in.available()];
-
                 while (in.read(readBuffer) != -1) {
                     String[] dataHex = HexUtils.bytesToHexString(readBuffer);
-
                     log.info("接收指令：{}",HexUtils.hexStrings2String(dataHex));
-
-
                     // 读一次成功就跳出循环
                     break;
                 }
-            } catch (IOException e) {
+            } catch (IOException | InterruptedException e) {
                log.info("读串口时出现IO异常",e);
             }
         }

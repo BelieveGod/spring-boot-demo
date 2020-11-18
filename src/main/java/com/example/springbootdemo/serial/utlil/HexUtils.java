@@ -33,7 +33,7 @@ public class HexUtils {
     public static String hexStrings2String(String[] hexStrings){
         StringBuilder builder = new StringBuilder();
         for (String hexString : hexStrings) {
-            builder.append(hexString);
+            builder.append(hexString+" ");
         }
         return builder.toString();
 
