@@ -1,6 +1,7 @@
 package com.example.springbootdemo.serial;
 
 import com.example.springbootdemo.serial.exception.PortInUseException;
+import com.example.springbootdemo.serial.utlil.HexUtils;
 import gnu.io.*;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -11,27 +12,37 @@ import java.io.OutputStream;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Scanner;
+
 /**
  * @author LTJ
  * @version 1.0
  * @date 2020/11/17 17:13
  */
 @Slf4j
-public class Temperature {
+public class Demo {
     // 类常量
-    private static final String COM7="COM7";
-    private static final int BIT_RATE =4800;
+    private static final String COM7 = "COM7";
+    private static final int BIT_RATE = 4800;
 
-    public static void sendInstruction(){
-        byte[] instruction=new byte[]{0x01,0x03,0x00,0x00,0x00,0x02,(byte)0xc4,0x0b};
+    public static void main(String[] args) {
+        listAllPorts();
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("按任意键结束");
+        scanner.nextLine();
+        System.exit(0);
+    }
+
+    public static void sendInstruction() {
+        byte[] instruction = new byte[]{0x01, 0x03, 0x00, 0x00, 0x00, 0x02, (byte) 0xc4, 0x0b};
         CommPortIdentifier portIdentifier = null;
-        OutputStream out=null;
         try {
             portIdentifier = CommPortIdentifier.getPortIdentifier(COM7);
             if (portIdentifier.isCurrentlyOwned()) {
                 log.error("error: port is currently in use");
-                throw  new PortInUseException("端口占用");
+                throw new PortInUseException("端口占用");
             }
+
+            // 打开串口
             SerialPort sport = portIdentifier.open("temperlature", 3000);
             log.info("sport.getName() = {}", sport.getName());
 
@@ -39,51 +50,37 @@ public class Temperature {
             // 设置串口参数
             sport.setSerialPortParams(BIT_RATE, SerialPort.DATABITS_8, SerialPort.STOPBITS_1, SerialPort.PARITY_NONE);
 
+            // 打开输入输出流
+            OutputStream out = sport.getOutputStream();
+            InputStream in=sport.getInputStream();
+
+
             // 注册监听者
-            sport.addEventListener(new SerialReader(sport));
+            sport.addEventListener(new SerialReader(in));
             // 设置监听开启
             sport.notifyOnDataAvailable(true);
 
-            out = sport.getOutputStream();
-            out.write(instruction);
-//            out.flush();
+            // 输入指令
+            new Thread(new SerialWriter(out,instruction)).start();
 
-            log.info("输入指令：");
-            String[] hexString = SerialReader.bytesToHexString(instruction);
-            for (String s : hexString) {
-                log.info(" " + s);
-            }
-            log.info("");
+
+
 
         } catch (Exception e) {
-           log.error("",e);
-        }finally {
-            if (out != null) {
-                try {
-                    out.close();
-                } catch (IOException e) {
-                    log.error("关闭错误",e);
-                }
-            }
+            log.error("", e);
         }
 
     }
 
-    public static void main(String[] args) {
-        listAllPorts();
-        Scanner scanner = new Scanner(System.in);
-        log.info("按任意键结束");
-        scanner.nextLine();
-        System.exit(0);
-    }
 
-    public static void listAllPorts(){
+
+    public static void listAllPorts() {
         Enumeration portIdentifiers = CommPortIdentifier.getPortIdentifiers();
         log.info("...");
         while (portIdentifiers.hasMoreElements()) {
             CommPortIdentifier commPortIdentifier = (CommPortIdentifier) portIdentifiers.nextElement();
             String portTypeName = getPortTypeName(commPortIdentifier.getPortType());
-            System.out.println(commPortIdentifier.getName()+"-"+portTypeName);
+            System.out.println(commPortIdentifier.getName() + "-" + portTypeName);
 
 
         }
@@ -143,44 +140,76 @@ public class Temperature {
     }
 
     public static class SerialReader implements SerialPortEventListener {
+        private final InputStream in;
 
-       private  SerialPort sport;
-
-        public SerialReader(SerialPort sport) {
-            this.sport = sport;
+        public SerialReader(InputStream in) {
+            this.in = in;
         }
 
-        @SneakyThrows
         @Override
         public void serialEvent(SerialPortEvent ev) {
-            if (SerialPortEvent.DATA_AVAILABLE==ev.getEventType()){
-                InputStream in = sport.getInputStream();
-//                byte[] readBuffer=new byte[in.available()];
-                byte[] readBuffer=new byte[1024];
-
-                while(in.read(readBuffer)!=-1){
-                    String[] dataHex = bytesToHexString(readBuffer);
-                    log.info("接收指令：");
-                    for (String s : dataHex) {
-                        log.info(" " + s);
-                    }
-                    log.info("");
-                }
+            switch (ev.getEventType()) {
+                case SerialPortEvent.BI:
+                case SerialPortEvent.OE:
+                case SerialPortEvent.FE:
+                case SerialPortEvent.PE:
+                case SerialPortEvent.CD:
+                case SerialPortEvent.CTS:
+                case SerialPortEvent.DSR:
+                case SerialPortEvent.RI:
+                case SerialPortEvent.OUTPUT_BUFFER_EMPTY:
+                    break;
+                case SerialPortEvent.DATA_AVAILABLE:
+                    readComm();
+                    break;
+                default:
+                    break;
             }
         }
 
-        private static final String[] bytesToHexString(byte[] bArray){
-            String[] strings = new String[bArray.length];
-            String sTemp;
-            for (int i = 0; i < bArray.length; i++) {
-                sTemp = Integer.toHexString(0xFF & bArray[i]);
-                if (sTemp.length() < 2) {
-                    strings[i] = "0" + sTemp;
-                } else {
-                    strings[i] = sTemp;
+        private void readComm() {
+            try(in) {
+                byte[] readBuffer=new byte[in.available()];
+
+                while (in.read(readBuffer) != -1) {
+                    String[] dataHex = HexUtils.bytesToHexString(readBuffer);
+
+                    log.info("接收指令：{}",HexUtils.hexStrings2String(dataHex));
+
+
+                    // 读一次成功就跳出循环
+                    break;
                 }
+            } catch (IOException e) {
+               log.info("读串口时出现IO异常",e);
             }
-            return strings;
+        }
+
+
+    }
+
+
+    public static class SerialWriter implements Runnable{
+        private final OutputStream out;
+        private byte[] data;
+
+
+        public SerialWriter(OutputStream out, byte[] data) {
+            this.out = out;
+            this.data = data;
+        }
+
+        @Override
+        public void run() {
+            try(out) {
+
+                log.info("输入指令:{}",HexUtils.hexStrings2String(HexUtils.bytesToHexString(data)));
+                out.write(data);
+                out.flush();
+
+            } catch (IOException  e) {
+               log.error("写串口数据出现异常",e);
+            }
         }
     }
 }
