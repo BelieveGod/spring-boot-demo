@@ -5,12 +5,17 @@ import com.example.springbootdemo.serial.utlil.HexUtils;
 import gnu.io.*;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FileUtils;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URL;
 import java.util.Enumeration;
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Scanner;
 
 /**
@@ -21,22 +26,24 @@ import java.util.Scanner;
 @Slf4j
 public class Demo {
     // 类常量
-    private static final String COM7 = "COM7";
-    private static final int BIT_RATE = 4800;
+    private static final String COM9 = "COM9";
+    private static final int BIT_RATE = 9600;
 
-    public static void main(String[] args) {
-        listAllPorts();
+
+    public static void main(String[] args) throws IOException {
+        sendInstruction();
         Scanner scanner = new Scanner(System.in);
         System.out.println("按任意键结束");
         scanner.nextLine();
         System.exit(0);
     }
 
+
     public static void sendInstruction() {
         byte[] instruction = new byte[]{0x01, 0x03, 0x00, 0x00, 0x00, 0x02, (byte) 0xc4, 0x0b};
         CommPortIdentifier portIdentifier = null;
         try {
-            portIdentifier = CommPortIdentifier.getPortIdentifier(COM7);
+            portIdentifier = CommPortIdentifier.getPortIdentifier(COM9);
             if (portIdentifier.isCurrentlyOwned()) {
                 log.error("error: port is currently in use");
                 throw new PortInUseException("端口占用");
@@ -190,14 +197,20 @@ public class Demo {
             this.data = data;
         }
 
+        @SneakyThrows
         @Override
         public void run() {
+            List<String> strings = FileUtils.readLines(new File("d:/1.txt"), "utf-8");
+
             try(out) {
-
-                log.info("输入指令:{}",HexUtils.hexStrings2String(HexUtils.bytesToHexString(data)));
-                out.write(data);
-                out.flush();
-
+                for (String string : strings) {
+                    String s = string + "\r\n";
+                    byte[] bytes = s.getBytes("GBK");
+                    log.info("输入指令:{}",HexUtils.hexStrings2String(HexUtils.bytesToHexString(bytes)));
+                    out.write(bytes);
+                    out.flush();
+                    Thread.sleep(100);
+                }
             } catch (IOException  e) {
                log.error("写串口数据出现异常",e);
             }
