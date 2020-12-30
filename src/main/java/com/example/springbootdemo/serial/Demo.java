@@ -25,7 +25,7 @@ public class Demo {
     private static final int BIT_RATE = 4800;
 
     public static void main(String[] args) {
-        listAllPorts();
+        sendInstruction();
         Scanner scanner = new Scanner(System.in);
         System.out.println("按任意键结束");
         scanner.nextLine();
@@ -73,64 +73,7 @@ public class Demo {
 
 
 
-    public static void listAllPorts() {
-        Enumeration portIdentifiers = CommPortIdentifier.getPortIdentifiers();
-        log.info("...");
-        while (portIdentifiers.hasMoreElements()) {
-            CommPortIdentifier commPortIdentifier = (CommPortIdentifier) portIdentifiers.nextElement();
-            String portTypeName = getPortTypeName(commPortIdentifier.getPortType());
-            System.out.println(commPortIdentifier.getName() + "-" + portTypeName);
-        }
 
-    }
-
-    private static String getPortTypeName(int portType) {
-        switch (portType) {
-            case CommPortIdentifier.PORT_I2C:
-                return "I2C";
-            case CommPortIdentifier.PORT_PARALLEL: // 并口
-                return "Parallel";
-            case CommPortIdentifier.PORT_RAW:
-                return "Raw";
-            case CommPortIdentifier.PORT_RS485: // RS485端口
-                return "RS485";
-            case CommPortIdentifier.PORT_SERIAL: // 串口
-                return "Serial";
-            default:
-                return "unknown type";
-        }
-    }
-
-    public static HashSet<CommPortIdentifier> getAvailableSerialPorts() {
-        HashSet<CommPortIdentifier> h = new HashSet<CommPortIdentifier>();
-        Enumeration<CommPortIdentifier> portList = CommPortIdentifier.getPortIdentifiers();
-        while (portList.hasMoreElements()) {
-            CommPortIdentifier com = (CommPortIdentifier) portList.nextElement();
-            switch (com.getPortType()) {
-                case CommPortIdentifier.PORT_SERIAL:
-                    try {
-                        // open:（应用程序名【随意命名】，阻塞时等待的毫秒数）
-                        /*
-                         * open方法打开通讯端口，获得一个CommPort对象，它使程序独占端口。
-                         * 如果端口正被其他应用程序占用，将使用CommPortOwnershipListener事件机制
-                         * 传递一个PORT_OWNERSHIP_REQUESTED事件。
-                         * 每个端口都关联一个InputStream和一个OutputStream,如果端口是用
-                         * open方法打开的，那么任何的getInputStream都将返回相同的数据流对象，除非 有close被调用。
-                         */
-                        CommPort thePort = com.open(Object.class.getSimpleName(), 50);
-                        thePort.close();
-                        h.add(com);
-                    } catch (PortInUseException e) {
-                        // 不可用串口
-                        System.out.println("Port, " + com.getName() + ", is in use.");
-                    } catch (Exception e) {
-                        System.err.println("Failed to open port " + com.getName());
-                        e.printStackTrace();
-                    }
-            }
-        }
-        return h;
-    }
 
     public static class SerialReader implements SerialPortEventListener {
         private final InputStream in;
