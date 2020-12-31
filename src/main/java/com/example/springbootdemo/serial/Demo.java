@@ -21,7 +21,7 @@ import java.util.Scanner;
 @Slf4j
 public class Demo {
     // 类常量
-    private static final String COM7 = "COM7";
+    private static final String PORT_NAME = "COM9";
     private static final int BIT_RATE = 4800;
 
     public static void main(String[] args) {
@@ -36,7 +36,7 @@ public class Demo {
         byte[] instruction = new byte[]{0x01, 0x03, 0x00, 0x00, 0x00, 0x02, (byte) 0xc4, 0x0b};
         CommPortIdentifier portIdentifier = null;
         try {
-            portIdentifier = CommPortIdentifier.getPortIdentifier(COM7);
+            portIdentifier = CommPortIdentifier.getPortIdentifier(PORT_NAME);
             if (portIdentifier.isCurrentlyOwned()) {
                 log.error("error: port is currently in use");
                 throw new PortInUseException("端口占用");
@@ -136,12 +136,13 @@ public class Demo {
         @Override
         public void run() {
             try(out) {
-
-                log.info("输入指令:{}",HexUtils.hexStrings2String(HexUtils.bytesToHexString(data)));
-                out.write(data);
-                out.flush();
-
-            } catch (IOException  e) {
+                while(true) {
+                    log.info("输入指令:{}", HexUtils.hexStrings2String(HexUtils.bytesToHexString(data)));
+                    out.write(data);
+                    out.flush();
+                    Thread.sleep(3000);
+                }
+            } catch (IOException | InterruptedException e) {
                log.error("写串口数据出现异常",e);
             }
         }
