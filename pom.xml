@@ -62,6 +62,15 @@
       <artifactId>spring-boot-starter-test</artifactId>
       <scope>test</scope>
     </dependency>
+    <!-- RXTX 依赖 -->
+    <dependency>
+      <groupId>com.neuronrobotics</groupId>
+      <artifactId>nrjavaserial</artifactId>
+      <version>5.2.1</version>
+      <scope>system</scope>
+      <systemPath>${basedir}/src/lib/nrjavaserial-5.2.1.jar</systemPath>
+    </dependency>
+
 
     <!--    工具包       -->
     <dependency>
