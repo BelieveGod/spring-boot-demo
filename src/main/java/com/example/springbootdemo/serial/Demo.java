@@ -104,19 +104,7 @@ public class Demo {
         }
 
         private void readComm() {
-            try(in) {
-                // 延迟一下等所有数据都输入进来
-                Thread.sleep(300);
-                byte[] readBuffer=new byte[in.available()];
-                while (in.read(readBuffer) != -1) {
-                    String[] dataHex = HexUtils.bytesToHexString(readBuffer);
-                    log.info("接收指令：{}",HexUtils.hexStrings2String(dataHex));
-                    // 读一次成功就跳出循环
-                    break;
-                }
-            } catch (IOException | InterruptedException e) {
-               log.info("读串口时出现IO异常",e);
-            }
+
         }
 
 
@@ -137,7 +125,6 @@ public class Demo {
         public void run() {
             try(out) {
                 while(true) {
-                    log.info("输入指令:{}", HexUtils.hexStrings2String(HexUtils.bytesToHexString(data)));
                     out.write(data);
                     out.flush();
                     Thread.sleep(3000);

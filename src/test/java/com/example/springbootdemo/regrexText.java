@@ -53,7 +53,7 @@ public class regrexText {
         outputs.forEach(System.out::println);
         String relativelyPath=System.getProperty("user.dir");
         System.out.println(relativelyPath);
-        String s = relativelyPath + File.separator + "inputs.txt";
+        String s = relativelyPath + File.separator + "uartLogExtract.log";
         FileUtil.writeLines(inputs, s, "utf-8");
 
     }
