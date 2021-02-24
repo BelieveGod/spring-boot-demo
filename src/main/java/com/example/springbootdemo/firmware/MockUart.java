@@ -43,7 +43,7 @@ public class MockUart {
 
         // 开启子线程
         CommPortIdentifier portIdentifier = null;
-        System.out.println("加载Mock完毕");
+        System.out.println("加载Uart Mock完毕");
 
         try {
             portIdentifier = CommPortIdentifier.getPortIdentifier(PORT_NAME);

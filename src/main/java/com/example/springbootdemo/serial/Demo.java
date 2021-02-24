@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Scanner;
@@ -22,7 +23,7 @@ import java.util.Scanner;
 public class Demo {
     // 类常量
     private static final String PORT_NAME = "COM9";
-    private static final int BIT_RATE = 4800;
+    private static final int BIT_RATE = 460800;
 
     public static void main(String[] args) {
         sendInstruction();
@@ -33,7 +34,10 @@ public class Demo {
     }
 
     public static void sendInstruction() {
-        byte[] instruction = new byte[]{0x01, 0x03, 0x00, 0x00, 0x00, 0x02, (byte) 0xc4, 0x0b};
+//        byte[] instruction = new byte[]{0x01, 0x03, 0x00, 0x00, 0x00, 0x02, (byte) 0xc4, 0x0b};
+        byte[] instruction = new byte[10];
+        Arrays.fill(instruction, (byte) 2);
+
         CommPortIdentifier portIdentifier = null;
         try {
             portIdentifier = CommPortIdentifier.getPortIdentifier(PORT_NAME);
@@ -127,7 +131,10 @@ public class Demo {
                 while(true) {
                     out.write(data);
                     out.flush();
-                    Thread.sleep(3000);
+                    // 控制睡眠
+                    if(true) {
+                        Thread.sleep(1);
+                    }
                 }
             } catch (IOException | InterruptedException e) {
                log.error("写串口数据出现异常",e);
