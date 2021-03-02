@@ -171,4 +171,17 @@ public class HexUtils {
         byte[] bytes1 = ArrayUtils.toPrimitive(bytes);
         return bytesToHexString(bytes1);
     }
+
+    /**
+     * 计算校验和
+     * @param bytes 要计算的内容
+     * @return
+     */
+    public static byte getChecksum(byte[] bytes){
+        int checkSum=0;
+        for(int i=0;i<bytes.length;i++){
+            checkSum+=bytes[i];
+        }
+        return (byte)checkSum;
+    }
 }
