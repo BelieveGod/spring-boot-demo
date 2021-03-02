@@ -15,6 +15,7 @@ public class MockCan2 {
         MockCan2 mockCan2 = new MockCan2();
 
         mockCan2.startMock();
+
         // 停留主线程
         Scanner scanner = new Scanner(System.in);
         System.out.println("按任意键结束");
@@ -25,6 +26,8 @@ public class MockCan2 {
     public MockCan2() {
         serialPortService = new SerialPortService();
         observer = new MockObserver(serialPortService);
+
+
     }
 
     private PortParam getPortParam(){

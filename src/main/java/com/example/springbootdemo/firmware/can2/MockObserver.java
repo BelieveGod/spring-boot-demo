@@ -71,6 +71,7 @@ public class MockObserver implements SerialObserver{
                 fbkWriteData(canFrame);
                 break;
             case Can2Protocal.SEND_VERSION:
+                fbkSendVersion(canFrame);
                 break;
         }
     }
@@ -93,23 +94,24 @@ public class MockObserver implements SerialObserver{
 
         CanFrame fbk = new CanFrame();
         fbk.header = Can2Protocal.HEADER;
-        canFrame.canId=(short)(Can2Protocal.FBK_UPDATE | nodeId);
-        canFrame.ack=(byte)0;
+        fbk.canId=(short)(Can2Protocal.FBK_UPDATE | nodeId);
+        fbk.ack=(byte)0;
 
 
         // APP to bootLoaer
-        canFrame.data[0]=0x01;
-        canFrame.checksum=getChecksum(canFrame.data);
-        byte[] bytes = canFrame.getBytes();
+        fbk.data[0]=0x01;
+        fbk.checksum=getChecksum(canFrame.data);
+        byte[] bytes = fbk.getBytes();
 
         // bootloader中
-        canFrame.data[0]=0x02;
-        canFrame.checksum=getChecksum(canFrame.data);
-        byte[] bytes2 = canFrame.getBytes();
+        fbk.data[0]=0x02;
+        fbk.checksum=getChecksum(canFrame.data);
+        byte[] bytes2 = fbk.getBytes();
         // flash 擦除成功
-        canFrame.data[0] = 0x03;
-        canFrame.checksum=getChecksum(canFrame.data);
-        byte[] bytes3 = canFrame.getBytes();
+        fbk.data[0] = 0x03;
+        fbk.checksum=getChecksum(canFrame.data);
+        byte[] bytes3 = fbk.getBytes();
+        readSize=0;
 
         try {
             serialPortService.writeData(bytes, 0, bytes.length);
@@ -139,13 +141,17 @@ public class MockObserver implements SerialObserver{
 
         try {
             if(readSize%1032==0){
-                canFrame.data[0]=0x02;
+//                canFrame.data[0]=0x02;
+                canFrame.data[0]=0x03;
                 canFrame.checksum = getChecksum(canFrame.data);
                 byte[] bytes = canFrame.getBytes();
-                log.info("接受满1K，CRC 成功");
+//                log.info("接受满1K，CRC 成功");
+                log.info("接受满1K，CRC 失败");
 
                 serialPortService.writeData(bytes,0,bytes.length);
-
+                if(true){
+                    return ;
+                }
                 if(flashSizeFix==readSize){
                     canFrame.data[0]=0x06;
                     canFrame.checksum = getChecksum(canFrame.data);
@@ -205,6 +211,63 @@ public class MockObserver implements SerialObserver{
         }
     }
 
+
+
+    public void sendVersion(int nodeId){
+        CanFrame fbk = new CanFrame();
+        fbk.header=Can2Protocal.HEADER;
+        fbk.canId=(short)(Can2Protocal.SEND_VERSION | nodeId);
+        fbk.ack=(byte)0;
+
+        Version version = new Version();
+        version.setHwInfo("V01.002-210120");
+        version.setMotorInfo("DEC-90-210120");
+        version.setNodeType("sssss-V1-MC");
+        version.setBatteryInfo("30H-210120");
+        version.setSolfVersion("V02.001");
+        version.setProductDate("210120");
+        version.setCanNodeId("0001");
+        byte[] bytes = version.getBytes();
+//        byte[] bytes = new byte[80];
+
+        for(int i=0;i<10;i++){
+            System.arraycopy(bytes, i * 8, fbk.data, 0, 8);
+            byte[] bytes1 = fbk.getBytes();
+            try {
+                Thread.sleep(1000);
+
+                serialPortService.writeData(bytes1, 0, bytes1.length);
+            } catch (IOException e) {
+                log.error("发送串口数据错误",e);
+                break;
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public void fbkSendVersion(CanFrame canFrame){
+        // 节点ID
+        int nodeId=canFrame.canId & 0xf;
+        log.info("nodeId :{}", nodeId);
+
+        CanFrame fbk = new CanFrame();
+        fbk.header=Can2Protocal.HEADER;
+        fbk.canId=(short)(Can2Protocal.FBK_SEND_VERSION | nodeId);
+        fbk.ack=(byte)0;
+
+        fbk.data[0] = 0x05;
+        fbk.data[1] = 0x00;
+        fbk.checksum=getChecksum(fbk.data);
+        byte[] bytes = fbk.getBytes();
+        try {
+            serialPortService.writeData(bytes, 0, bytes.length);
+        } catch (IOException e) {
+            log.error("发送串口数据错误",e);
+        }
+
+    }
+
     /**
      * 计算校验和
      * @param bytes 要计算的内容
@@ -217,4 +280,5 @@ public class MockObserver implements SerialObserver{
         }
         return (byte)checkSum;
     }
+
 }
