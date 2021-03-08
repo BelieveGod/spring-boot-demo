@@ -9,6 +9,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  *
@@ -24,6 +26,12 @@ public class SerialPortService {
     private CommPortIdentifier theCommPortIdentifier;
     private SerialPort theSerialPort;
     private List<Byte> readBuffer = new LinkedList<>();
+    private ExecutorService singlePool = Executors.newSingleThreadExecutor(r -> {
+        Thread t = new Thread(r);
+        t.setName("读取线程");
+        t.setDaemon(true);
+        return  t;
+    });
 
     // 存在多线程增删问题
     private List<SerialObserver> observerList = new ArrayList<>();
@@ -158,8 +166,12 @@ public class SerialPortService {
                 case SerialPortEvent.DATA_AVAILABLE:
                     // 读取数据
                     readComm();
+
                     // 读完数据后通知相应处理
-                    inform();
+                    singlePool.submit(()->{
+
+                        inform();
+                    });
                     break;
                 default:
                     break;
@@ -175,7 +187,9 @@ public class SerialPortService {
                 byte[] tempBuffer = new byte[in.available()];
                 // k用来记录实际读取的字节数
                 int k = 0;
+                int circulationCnt=0;
                 while ((k = in.read(tempBuffer)) != -1) {
+                    log.info("circulationCnt++ = {},readBuffer.size:{}," , circulationCnt++,readBuffer.size());
                     // 读到结束符或者没有读入1个字符串就退出循环
                     if (1 > k) {
                         break;
@@ -183,8 +197,17 @@ public class SerialPortService {
                     String[] dataHex = HexUtils.bytesToHexStrings(tempBuffer, 0, k);
                     String s = HexUtils.bytesToHexString(tempBuffer, 0, k);
                     Byte[] bytes = ArrayUtils.toObject(tempBuffer);
-                    readBuffer.addAll(Arrays.asList(bytes).subList(0, k));
+                    synchronized (readBuffer){
+
+                        readBuffer.addAll(Arrays.asList(bytes).subList(0, k));
+                    }
                     log.info("\n读取的数据： " + s);
+                    if(readBuffer.size()>1400){
+                        singlePool.submit(()->{
+
+                            inform();
+                        });
+                    }
                 }
             } catch (IOException e) {
                 log.error("串口读IO 错误",e);
@@ -197,6 +220,7 @@ public class SerialPortService {
         private void inform(){
             for (SerialObserver serialObserver : observerList) {
                 // 这里同步调用，应该不会和读数据冲突。避免一边接收数据，一边处理数据
+                log.info("通知处理");
                 serialObserver.handle(readBuffer);
             }
         }

@@ -10,6 +10,7 @@ import java.util.Scanner;
 public class MockCan2 {
     private SerialPortService serialPortService;
     private MockObserver observer;
+    private String portName ="COM8";
 
     public static void main(String[] args) {
         MockCan2 mockCan2 = new MockCan2();
@@ -31,10 +32,9 @@ public class MockCan2 {
     }
 
     private PortParam getPortParam(){
-        String value="COM9";
         int bauldRate=460800;
         PortParam portParam = new PortParam();
-        portParam.setPortName(value);
+        portParam.setPortName(portName);
         portParam.setBauldRate(bauldRate);
         portParam.setDataBits(PortParam.DATABITS_8);
         portParam.setStopBits(PortParam.STOPBITS_1);

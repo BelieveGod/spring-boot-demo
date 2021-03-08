@@ -3,16 +3,20 @@ package com.example.springbootdemo.firmware.can2;
 import com.example.springbootdemo.serial.utlil.ByteUtils;
 import com.example.springbootdemo.serial.utlil.HexUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.ArrayUtils;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 public class MockObserver implements SerialObserver{
     private final byte HEADER_1=0X55;
     private final byte HEADER_2=0X0E;
+    private AtomicInteger cnt = new AtomicInteger(0);
+    private AtomicInteger dropCnt = new AtomicInteger(0);
 
     // 模拟缓冲区
     public final int bufSize=1024;
@@ -31,8 +35,17 @@ public class MockObserver implements SerialObserver{
     private List<Byte> receiveData=new LinkedList<>();
     @Override
     public void handle(List<Byte> readBuffer) {
-        receiveData.addAll(readBuffer);
+        synchronized (readBuffer){
+            log.info("处理数据：{}",readBuffer.size());
+            receiveData.addAll(readBuffer);
+        try {
+            Thread.sleep(30);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         readBuffer.clear();
+            log.info("处理后数据：{}，receiveData:{}", readBuffer.size(), receiveData.size());
+        }
         // 固定长度帧解析
         while(receiveData.size()>=CanFrame.sizeOf){
             // 不是帧头，舍弃一位
@@ -45,9 +58,16 @@ public class MockObserver implements SerialObserver{
             List<Byte> subList = receiveData.subList(0, CanFrame.sizeOf);
             frame.addAll(subList);
             subList.clear();
-            log.info("\n捕获帧={}",HexUtils.bytesToHexString(frame));
+            byte[] bytes = ArrayUtils.toPrimitive(frame.toArray(new Byte[0]));
+            int i=(bytes[12]& 0xff )<<8 | (bytes[13] &0xff);
+            int k = cnt.getAndIncrement();
+            log.info("\n捕获帧{}={},序列号：{}", k,HexUtils.bytesToHexString(frame),i);
+            if(i!=k){
+                log.error("序列号和帧数不等：帧数{}，序列号{},丢失{}帧",k,i,dropCnt.incrementAndGet());
+                cnt.set(i + 1);
+            }
             // 解析该帧
-            decode(frame);
+//            decode(frame);
         }
     }
 

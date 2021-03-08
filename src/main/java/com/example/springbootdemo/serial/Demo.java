@@ -132,7 +132,7 @@ public class Demo {
                     out.write(data);
                     out.flush();
                     // 控制睡眠
-                    if(true) {
+                    if(false) {
                         Thread.sleep(1);
                     }
                 }
