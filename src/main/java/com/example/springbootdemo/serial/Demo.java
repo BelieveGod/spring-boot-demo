@@ -1,6 +1,7 @@
 package com.example.springbootdemo.serial;
 
 import com.example.springbootdemo.serial.exception.PortInUseException;
+import com.example.springbootdemo.serial.utlil.CrcUtil;
 import com.example.springbootdemo.serial.utlil.HexUtils;
 import gnu.io.*;
 import lombok.SneakyThrows;
@@ -9,10 +10,13 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Scanner;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * @author LTJ
@@ -22,10 +26,11 @@ import java.util.Scanner;
 @Slf4j
 public class Demo {
     // 类常量
-    private static final String PORT_NAME = "COM9";
+    private static final String PORT_NAME = "COM3";
     private static final int BIT_RATE = 460800;
 
     public static void main(String[] args) {
+//        before();
         sendInstruction();
         Scanner scanner = new Scanner(System.in);
         System.out.println("按任意键结束");
@@ -33,10 +38,18 @@ public class Demo {
         System.exit(0);
     }
 
+    private static void before(){
+        byte[] bytes = new byte[] { 0x11, 0x22, 0x33, 0x44 };
+        byte[] bytes1 = CrcUtil.setParamCrcAdapter(bytes, bytes.length);
+        String string = HexUtils.bytesToHexString(bytes1);
+        System.out.println("string = " + string);
+
+
+    }
+
     public static void sendInstruction() {
 //        byte[] instruction = new byte[]{0x01, 0x03, 0x00, 0x00, 0x00, 0x02, (byte) 0xc4, 0x0b};
-        byte[] instruction = new byte[10];
-        Arrays.fill(instruction, (byte) 2);
+        byte[] instruction = new byte[]{0x55,0x0e,0x01,0x31,0x11,0x22,0x33,0x44,0x55,0x66,0x77,(byte)0x88,0x01,0x64};
 
         CommPortIdentifier portIdentifier = null;
         try {
@@ -108,7 +121,17 @@ public class Demo {
         }
 
         private void readComm() {
+            try {
+                int available = in.available();
+                byte[] buf = new byte[available];
+                int read = in.read(buf);
+                System.out.println("read:" + read);
+                String string = HexUtils.bytesToHexString(buf);
+                System.out.println("收到:"+string);
 
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
 
 
@@ -129,6 +152,8 @@ public class Demo {
         public void run() {
             try(out) {
                 while(true) {
+                String string = HexUtils.bytesToHexString(data);
+                System.out.println("写入:"+string);
                     out.write(data);
                     out.flush();
                     // 控制睡眠

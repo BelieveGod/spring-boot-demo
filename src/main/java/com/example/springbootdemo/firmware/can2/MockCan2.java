@@ -10,7 +10,7 @@ import java.util.Scanner;
 public class MockCan2 {
     private SerialPortService serialPortService;
     private MockObserver observer;
-    private String portName ="COM8";
+    private String portName ="COM12";
 
     public static void main(String[] args) {
         MockCan2 mockCan2 = new MockCan2();
@@ -45,6 +45,7 @@ public class MockCan2 {
     private void startMock(){
         serialPortService.openSerialPort(getPortParam());
         serialPortService.addObserver(observer);
+//        observer.sendVersion(1);
     }
 
     /**

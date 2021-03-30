@@ -6,8 +6,10 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
+import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.LocalTime;
+import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -42,6 +44,7 @@ public class MockApp {
     private AtomicInteger remoterCnt = new AtomicInteger();
     private AtomicInteger odomCnt = new AtomicInteger();
 
+    private Random random = new SecureRandom();
 
 
     public static void main(String[] args) {
@@ -116,6 +119,9 @@ public class MockApp {
             int i = chassisCnt.getAndIncrement();
             chassSys[12]= ((byte) (i >> 8));
             chassSys[13] = (byte) (i >> 0);
+            int i1 = random.nextInt(300);
+            chassSys[6] = ((byte) (i1 >> 8));
+            chassSys[7] = ((byte) (i1 >> 0));
             log.info("发送系统状态：{}",i);
             serialPortService.writeData(chassSys,0,chassSys.length);
         }
@@ -131,6 +137,19 @@ public class MockApp {
             log.info("发送运动状态:{}",i);
             motion[12]= ((byte) (i >> 8));
             motion[13] = (byte) (i >> 0);
+
+            int i1 = random.nextInt(2000) - 1000+1;
+            motion[4] = ((byte) (i1 >> 8));
+            motion[5] = ((byte) (i1 >> 0));
+            i1 = random.nextInt(2000) - 1000+1;
+            motion[6] = ((byte) (i1 >> 8));
+            motion[7] = ((byte) (i1 >> 0));
+            i1 = random.nextInt(2000) - 1000+1;
+            motion[8] = ((byte) (i1 >> 8));
+            motion[9] = ((byte) (i1 >> 0));
+            i1 = random.nextInt(2000) - 1000+1;
+            motion[10] = ((byte) (i1 >> 8));
+            motion[11] = ((byte) (i1 >> 0));
             serialPortService.writeData(motion,0,motion.length);
         }
     }

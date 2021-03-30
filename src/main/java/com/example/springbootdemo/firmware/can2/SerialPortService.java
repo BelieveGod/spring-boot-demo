@@ -169,7 +169,7 @@ public class SerialPortService {
 
                     // 读完数据后通知相应处理
                     singlePool.submit(()->{
-
+//
                         inform();
                     });
                     break;
@@ -189,7 +189,7 @@ public class SerialPortService {
                 int k = 0;
                 int circulationCnt=0;
                 while ((k = in.read(tempBuffer)) != -1) {
-                    log.info("circulationCnt++ = {},readBuffer.size:{}," , circulationCnt++,readBuffer.size());
+//                    log.info("circulationCnt++ = {},readBuffer.size:{}," , circulationCnt++,readBuffer.size());
                     // 读到结束符或者没有读入1个字符串就退出循环
                     if (1 > k) {
                         break;
@@ -201,7 +201,7 @@ public class SerialPortService {
 
                         readBuffer.addAll(Arrays.asList(bytes).subList(0, k));
                     }
-                    log.info("\n读取的数据： " + s);
+//                    log.info("\n读取的数据： " + s);
                     if(readBuffer.size()>1400){
                         singlePool.submit(()->{
 
@@ -220,7 +220,7 @@ public class SerialPortService {
         private void inform(){
             for (SerialObserver serialObserver : observerList) {
                 // 这里同步调用，应该不会和读数据冲突。避免一边接收数据，一边处理数据
-                log.info("通知处理");
+//                log.info("通知处理");
                 serialObserver.handle(readBuffer);
             }
         }

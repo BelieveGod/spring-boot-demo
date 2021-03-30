@@ -36,7 +36,7 @@ public class MockObserver implements SerialObserver{
     @Override
     public void handle(List<Byte> readBuffer) {
         synchronized (readBuffer){
-            log.info("处理数据：{}",readBuffer.size());
+//            log.info("处理数据：{}",readBuffer.size());
             receiveData.addAll(readBuffer);
         try {
             Thread.sleep(30);
@@ -44,7 +44,7 @@ public class MockObserver implements SerialObserver{
             e.printStackTrace();
         }
         readBuffer.clear();
-            log.info("处理后数据：{}，receiveData:{}", readBuffer.size(), receiveData.size());
+//            log.info("处理后数据：{}，receiveData:{}", readBuffer.size(), receiveData.size());
         }
         // 固定长度帧解析
         while(receiveData.size()>=CanFrame.sizeOf){
@@ -58,16 +58,16 @@ public class MockObserver implements SerialObserver{
             List<Byte> subList = receiveData.subList(0, CanFrame.sizeOf);
             frame.addAll(subList);
             subList.clear();
-            byte[] bytes = ArrayUtils.toPrimitive(frame.toArray(new Byte[0]));
-            int i=(bytes[12]& 0xff )<<8 | (bytes[13] &0xff);
+//            byte[] bytes = ArrayUtils.toPrimitive(frame.toArray(new Byte[0]));
+//            int i=(bytes[12]& 0xff )<<8 | (bytes[13] &0xff);
             int k = cnt.getAndIncrement();
-            log.info("\n捕获帧{}={},序列号：{}", k,HexUtils.bytesToHexString(frame),i);
-            if(i!=k){
-                log.error("序列号和帧数不等：帧数{}，序列号{},丢失{}帧",k,i,dropCnt.incrementAndGet());
-                cnt.set(i + 1);
-            }
+//            log.info("\n捕获帧{}={},序列号：{}", k,HexUtils.bytesToHexString(frame),i);
+//            if(i!=k){
+//                log.error("序列号和帧数不等：帧数{}，序列号{},丢失{}帧",k,i,dropCnt.incrementAndGet());
+//                cnt.set(i + 1);
+//            }
             // 解析该帧
-//            decode(frame);
+            decode(frame);
         }
     }
 
@@ -80,20 +80,29 @@ public class MockObserver implements SerialObserver{
         // 节点ID
         int nodeId=canFrame.canId & 0xf;
 
+
         switch (cmdType){
-            case Can2Protocal.START_UPDATE:
-                fbkStartUpdate(canFrame);
-                break;
-            case Can2Protocal.GET_VERSION:
-                fbkGetVersion(canFrame);
-                break;
-            case Can2Protocal.WRITE_DATA:
-                fbkWriteData(canFrame);
-                break;
-            case Can2Protocal.SEND_VERSION:
-                fbkSendVersion(canFrame);
-                break;
+        case Can2Protocal.FBK_SEND_VERSION:
+        case Can2Protocal.FBK_GET_VER:
+        case Can2Protocal.FBK_UPDATE:
+        case Can2Protocal.FBK_WRITE:
+            log.info("捕获帧：{}", HexUtils.bytesToHexString(frame));
         }
+
+//        switch (cmdType){
+//            case Can2Protocal.START_UPDATE:
+//                fbkStartUpdate(canFrame);
+//                break;
+//            case Can2Protocal.GET_VERSION:
+//                fbkGetVersion(canFrame);
+//                break;
+//            case Can2Protocal.WRITE_DATA:
+//                fbkWriteData(canFrame);
+//                break;
+//            case Can2Protocal.SEND_VERSION:
+//                fbkSendVersion(canFrame);
+//                break;
+//        }
     }
 
     public void fbkStartUpdate(CanFrame canFrame){
@@ -232,7 +241,10 @@ public class MockObserver implements SerialObserver{
     }
 
 
-
+    /**
+     * 发送版本
+     * @param nodeId
+     */
     public void sendVersion(int nodeId){
         CanFrame fbk = new CanFrame();
         fbk.header=Can2Protocal.HEADER;
@@ -242,9 +254,9 @@ public class MockObserver implements SerialObserver{
         Version version = new Version();
         version.setHwInfo("V01.002-210120");
         version.setMotorInfo("DEC-90-210120");
-        version.setNodeType("sssss-V1-MC");
+        version.setNodeType("D01");
         version.setBatteryInfo("30H-210120");
-        version.setSolfVersion("V02.001");
+        version.setSolfVersion("V1.0");
         version.setProductDate("210120");
         version.setCanNodeId("0001");
         byte[] bytes = version.getBytes();
@@ -254,7 +266,7 @@ public class MockObserver implements SerialObserver{
             System.arraycopy(bytes, i * 8, fbk.data, 0, 8);
             byte[] bytes1 = fbk.getBytes();
             try {
-                Thread.sleep(1000);
+                Thread.sleep(700);
 
                 serialPortService.writeData(bytes1, 0, bytes1.length);
             } catch (IOException e) {
@@ -264,6 +276,23 @@ public class MockObserver implements SerialObserver{
                 e.printStackTrace();
             }
         }
+    }
+
+    public void setNodeAddr(int oldId,int newId){
+        CanFrame canFrame=new CanFrame();
+        canFrame.header = Can2Protocal.HEADER;
+        canFrame.canId=(short)(0x460 | oldId);
+        canFrame.data[0]=(byte)newId;
+        canFrame.ack=0;
+        canFrame.checksum = getChecksum(canFrame.data);
+
+        byte[] bytes = canFrame.getBytes();
+        try {
+            serialPortService.writeData(bytes, 0, bytes.length);
+        } catch (IOException e) {
+            log.error("发送串口数据错误",e);
+        }
+
     }
 
     public void fbkSendVersion(CanFrame canFrame){
